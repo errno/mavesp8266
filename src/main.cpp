@@ -44,7 +44,14 @@
 
 #include <ESP8266mDNS.h>
 
-#define GPIO02  2
+#define FRONT_LED_IO 0
+#define BACK_LED_IO 2
+
+#define DJI_LED_OFF 50
+#define DJI_LED_RED 200
+#define DJI_LED_GREEN 300
+#define DJI_LED_YELLOW 400
+#define DJI_LED_MSTATUS 600
 
 //---------------------------------------------------------------------------------
 //-- HTTP Update Status
@@ -125,27 +132,21 @@ void wait_for_client() {
 }
 
 //---------------------------------------------------------------------------------
-//-- Reset all parameters whenever the reset gpio pin is active
-void reset_interrupt(){
-    Parameters.resetToDefaults();
-    Parameters.saveAllToEeprom();
-    ESP.reset();
-}
-
-//---------------------------------------------------------------------------------
 //-- Set things up
 void setup() {
     delay(1000);
     Parameters.begin();
+    //-- Initialized GPIO00 (Used for front lights control)
+    pinMode(FRONT_LED_IO, OUTPUT);
 #ifdef ENABLE_DEBUG
     //   We only use it for non debug because GPIO02 is used as a serial
     //   pin (TX) when debugging.
     Serial1.begin(115200);
 #else
-    //-- Initialized GPIO02 (Used for "Reset To Factory")
-    pinMode(GPIO02, INPUT_PULLUP);
-    attachInterrupt(GPIO02, reset_interrupt, FALLING);
+    //-- Initialized GPIO02 (Used for back lights control)
+    pinMode(BACK_LED_IO, OUTPUT);
 #endif
+
     Logger.begin(2048);
 
     DEBUG_LOG("\nConfiguring access point...\n");
@@ -204,6 +205,8 @@ void setup() {
     Vehicle.begin(&GCS);
     //-- Initialize Update Server
     updateServer.begin(&updateStatus);
+    analogWrite(FRONT_LED_IO, DJI_LED_GREEN);
+    analogWrite(BACK_LED_IO, DJI_LED_RED);
 }
 
 //---------------------------------------------------------------------------------
@@ -222,4 +225,6 @@ void loop() {
         }
     }
     updateServer.checkUpdates();
+    analogWrite(FRONT_LED_IO, DJI_LED_GREEN);
+    analogWrite(BACK_LED_IO, DJI_LED_RED);
 }
